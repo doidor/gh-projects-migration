@@ -297,7 +297,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     move_issues_ret = do_move_issues(headers, projects_data["new"]["id"], issues)
-    print("Moved issues.")
+    print("Copied issues.")
 
     new_issues_status = []
 
