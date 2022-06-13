@@ -239,9 +239,19 @@ if __name__ == "__main__":
     github_rest = Github(args.token)
     is_org = github_rest.get_user(args.user).type.lower() == "organization" or False
 
-    projects_data = get_projects_data(
-        headers, args.user, args.repository, args.project_old, args.project_new, is_org
-    )
+    try:
+        projects_data = get_projects_data(
+            headers,
+            args.user,
+            args.repository,
+            args.project_old,
+            args.project_new,
+            is_org,
+        )
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
     print("Gathered projects data.")
 
     if dry_run:
