@@ -179,10 +179,10 @@ def do_move_issues(headers, project_id, issues):
             {
                 "project_id": project_id,
                 "issue_id": issue["id"],
-                "issue_move_name": f'{mutation_prefix}{issue["id"]}',
+                "issue_move_name": f"{mutation_prefix}{counter}",
             }
         )
-        for issue in issues
+        for (counter, issue) in enumerate(issues, 1)
     ]
     move_issues_query = "".join(move_issues_query)
 
@@ -192,10 +192,12 @@ def do_move_issues(headers, project_id, issues):
         }
     )
 
-    result = run_query(query, headers)["data"]
+    result = run_query(query, headers)
+
+    result = result["data"]
     issues_id_mapping = {
-        issue[len(mutation_prefix) :]: result[issue]["projectNextItem"]["id"]
-        for issue in result
+        issues[i]["id"]: result[issue]["projectNextItem"]["id"]
+        for (i, issue) in enumerate(result)
     }
 
     return issues_id_mapping
@@ -213,10 +215,10 @@ def do_update_issues(headers, project_id, issues, status_field_id):
                 "issue_id": issue["id"],
                 "new_status_id": issue["status"],
                 "status_field_id": status_field_id,
-                "issue_update_name": f'{mutation_prefix}{issue["id"]}',
+                "issue_update_name": f"{mutation_prefix}{counter}",
             }
         )
-        for issue in issues
+        for (counter, issue) in enumerate(issues, 1)
     ]
     update_issues_query = "".join(update_issues_query)
 
@@ -303,7 +305,7 @@ if __name__ == "__main__":
         issue_status = next(
             (
                 projects_data["column_mappings"][issue["status"]]
-                for issue in projects_data["issues"]
+                for issue in issues
                 if issue["id"] == issue_old
             ),
             None,
