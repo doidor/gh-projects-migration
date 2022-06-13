@@ -4,6 +4,7 @@ import requests
 import sys
 
 from queries import move_issues, projects_data, update_issues_status
+from github import Github
 
 
 def run_query(query, headers):
@@ -23,12 +24,18 @@ def run_query(query, headers):
         )
 
 
-def get_projects_data(headers, user, repository, project_old, project_new):
+def get_projects_data(
+    headers, user, repository, project_old, project_new, is_org=False
+):
     """
     Fetches new and old projects data.
     """
+
+    user_type = "organization" if is_org else "user"
+
     query = projects_data.query_template.substitute(
         {
+            "user_type": user_type,
             "user": user,
             "repository": repository,
             "project_old": project_old,
@@ -37,8 +44,17 @@ def get_projects_data(headers, user, repository, project_old, project_new):
     )
 
     result = run_query(query, headers)
-    result_data = result["data"]["user"]["repository"]
-    result_data_old = result_data["projects"]["edges"][0]["node"]
+    result_data = result["data"][user_type]["repository"]
+    result_data_old = result_data["projects"]["edges"]
+
+    if len(result_data_old) == 0:
+        raise Exception(f"Project {project_old} not found")
+
+    result_data_old = result_data_old[0]["node"]
+
+    if result_data_old is None:
+        raise Exception(f"Project {project_old} not found")
+
     project_data_old = {
         "id": result_data_old["id"],
         "name": result_data_old["name"],
@@ -48,12 +64,28 @@ def get_projects_data(headers, user, repository, project_old, project_new):
         ],
     }
 
-    result_data_new = result_data["projectsNext"]["edges"][0]["node"]
+    result_data_new = [
+        project
+        for project in result_data["projectsNext"]["edges"]
+        if project["node"]["title"] == project_new
+    ]
+
+    if len(result_data_new) == 0:
+        raise Exception(f"Project {project_new} not found")
+
+    result_data_new = result_data_new[0]["node"] or None
+
+    if result_data_new is None:
+        raise Exception(f"Project {project_new} not found")
+
     new_project_status_field = [
         field
         for field in result_data_new["fields"]["nodes"]
         if field["name"] == "Status"
-    ][0]
+    ][0] or None
+
+    if new_project_status_field is None:
+        raise Exception(f"Status field not found on project {project_new}")
 
     new_project_columns = json.loads(new_project_status_field["settings"])["options"]
     project_data_new = {
@@ -90,6 +122,11 @@ def get_projects_data(headers, user, repository, project_old, project_new):
             ),
             None,
         )
+
+        if new_column is None:
+            raise Exception(
+                f"Column {column['name']} not found in new project. Please make sure to manually clone all the columns from the old project to the new one."
+            )
 
         column_mappings[column["id"]] = new_column["id"]
 
@@ -199,8 +236,11 @@ if __name__ == "__main__":
     dry_run = args.dry_run
 
     headers = {"Authorization": f"Bearer {args.token}"}
+    github_rest = Github(args.token)
+    is_org = github_rest.get_user(args.user).type.lower() == "organization" or False
+
     projects_data = get_projects_data(
-        headers, args.user, args.repository, args.project_old, args.project_new
+        headers, args.user, args.repository, args.project_old, args.project_new, is_org
     )
     print("Gathered projects data.")
 

@@ -2,7 +2,7 @@ from string import Template
 
 query_raw = """
 query {
-  user(login: "$user") {
+  $user_type(login: "$user") {
     repository(name: "$repository") {
       id
       name
@@ -22,7 +22,7 @@ query {
           }
         }
       }
-      projectsNext(first: 1, query: "$project_new") {
+      projectsNext(first: 10, query: "$project_new") {
         edges {
           node {
             id
