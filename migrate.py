@@ -3,7 +3,7 @@ import json
 import requests
 import sys
 
-from queries import move_issues, projects_data, update_issues_status
+from queries import move_issues, projects_data, update_issues_status, project_issues
 from github import Github
 
 
@@ -24,14 +24,10 @@ def run_query(query, headers):
         )
 
 
-def get_projects_data(
-    headers, user, repository, project_old, project_new, is_org=False
-):
+def get_projects_data(headers, user, repository, project_old, project_new, user_type):
     """
     Fetches new and old projects data.
     """
-
-    user_type = "organization" if is_org else "user"
 
     query = projects_data.query_template.substitute(
         {
@@ -94,23 +90,6 @@ def get_projects_data(
         "columns": new_project_columns,
     }
 
-    repo_issues = result_data["issues"]["edges"]
-    project_issues = []
-
-    for issue in repo_issues:
-        for project_card in issue["node"]["projectCards"]["edges"]:
-            if (
-                project_card["node"]["project"]["name"] == project_old
-                and issue["node"]["closed"] is False
-            ):
-                project_issues.append(
-                    {
-                        "id": issue["node"]["id"],
-                        "title": issue["node"]["title"],
-                        "status": project_card["node"]["column"]["id"],
-                    }
-                )
-
     column_mappings = {}
 
     for column in project_data_old["columns"]:
@@ -133,12 +112,61 @@ def get_projects_data(
     ret = {
         "old": project_data_old,
         "new": project_data_new,
-        "issues": project_issues,
         "column_mappings": column_mappings,
         "new_project_status_field": new_project_status_field,
     }
 
     return ret
+
+
+def get_project_issues(headers, user_type, user, repository, project):
+    def run_issues_query(after=None):
+        after_cursor = "" if after is None else f', after: "{after}"'
+
+        query = project_issues.query_template.substitute(
+            {
+                "user_type": user_type,
+                "user": user,
+                "repository": repository,
+                "after_cursor": after_cursor,
+            }
+        )
+
+        result = run_query(query, headers)
+
+        repo_issues = result["data"][user_type]["repository"]["issues"]["edges"]
+        pagination_data = result["data"][user_type]["repository"]["issues"]["pageInfo"]
+
+        ret = {
+            "issues": [],
+            "pagination_data": pagination_data,
+        }
+
+        for issue in repo_issues:
+            for project_card in issue["node"]["projectCards"]["edges"]:
+                if project_card["node"]["project"]["name"] == project:
+                    ret["issues"].append(
+                        {
+                            "id": issue["node"]["id"],
+                            "title": issue["node"]["title"],
+                            "status": project_card["node"]["column"]["id"],
+                        }
+                    )
+
+        return ret
+
+    run = run_issues_query()
+    issues = run["issues"]
+    counter = 1
+    print(f"Fetched page #1 (100 issues / page)")
+
+    while run["pagination_data"]["hasNextPage"]:
+        run = run_issues_query(run["pagination_data"]["endCursor"])
+        issues.extend(run["issues"])
+        counter += 1
+        print(f"Fetched page #{counter}")
+
+    return issues
 
 
 def do_move_issues(headers, project_id, issues):
@@ -238,6 +266,7 @@ if __name__ == "__main__":
     headers = {"Authorization": f"Bearer {args.token}"}
     github_rest = Github(args.token)
     is_org = github_rest.get_user(args.user).type.lower() == "organization" or False
+    user_type = "organization" if is_org else "user"
 
     try:
         projects_data = get_projects_data(
@@ -246,7 +275,11 @@ if __name__ == "__main__":
             args.repository,
             args.project_old,
             args.project_new,
-            is_org,
+            user_type,
+        )
+
+        issues = get_project_issues(
+            headers, user_type, args.user, args.repository, args.project_old
         )
     except Exception as e:
         print(f"Error: {e}")
@@ -257,12 +290,11 @@ if __name__ == "__main__":
     if dry_run:
         print("Dry run, no updates will be made.")
         print(json.dumps(projects_data, indent=2))
+        print(json.dumps(issues, indent=2))
 
         sys.exit(0)
 
-    move_issues_ret = do_move_issues(
-        headers, projects_data["new"]["id"], projects_data["issues"]
-    )
+    move_issues_ret = do_move_issues(headers, projects_data["new"]["id"], issues)
     print("Moved issues.")
 
     new_issues_status = []

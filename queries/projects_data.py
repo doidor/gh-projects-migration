@@ -37,31 +37,6 @@ query {
           }
         }
       }
-      issues(first: 100) {
-        edges {
-          node {
-            id
-            projectCards(first: 10) {
-              edges {
-                node {
-                  id
-                  project {
-                    id
-                    name
-                  }
-                  column {
-                    id
-                    name
-                  }
-                }
-              }
-            }
-            closed
-            title
-            state
-          }
-        }
-      }
     }
   }
 }
