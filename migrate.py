@@ -169,7 +169,7 @@ def get_project_issues(headers, user_type, user, repository, project):
     return issues
 
 
-def do_move_issues(headers, project_id, issues):
+def do_copy_issues(headers, project_id, issues):
     """
     Move issues from the old project to the new one.
     """
@@ -296,7 +296,7 @@ if __name__ == "__main__":
 
         sys.exit(0)
 
-    move_issues_ret = do_move_issues(headers, projects_data["new"]["id"], issues)
+    move_issues_ret = do_copy_issues(headers, projects_data["new"]["id"], issues)
     print("Copied issues.")
 
     new_issues_status = []
