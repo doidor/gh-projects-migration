@@ -45,16 +45,15 @@ The tool usage is pretty straight forward:
 1. Follow the tool help guide:
 
 ```
-usage: migrate.py [-h] [--dry-run] --token TOKEN --user USER --repository REPOSITORY --project_old
-                  PROJECT_OLD --project_new PROJECT_NEW
+$ python migrate.py -h
+usage: migrate.py [-h] [--dry-run] [--token TOKEN] [--user USER] [--repository REPOSITORY]
+                  [--project_old PROJECT_OLD] [--project_new PROJECT_NEW] [--config CONFIG]
 
 Migrate issues from an old Github project to a Beta one.
 
 options:
   -h, --help            show this help message and exit
   --dry-run             Only get data without any updates
-
-required named arguments:
   --token TOKEN         Github user token
   --user USER           Github user
   --repository REPOSITORY
@@ -63,4 +62,6 @@ required named arguments:
                         Old github project name
   --project_new PROJECT_NEW
                         New github project name
+  --config CONFIG       Config file path
+
 ```
