@@ -339,7 +339,7 @@ if __name__ == "__main__":
     user_type = "organization" if is_org else "user"
 
     try:
-        projects_data = get_projects_data(
+        data = get_projects_data(
             headers,
             user,
             repository,
@@ -358,16 +358,14 @@ if __name__ == "__main__":
 
     if dry_run:
         print("Dry run, no updates will be made.")
-        print(json.dumps(projects_data, indent=2))
+        print(json.dumps(data, indent=2))
         print(json.dumps(issues, indent=2))
 
         sys.exit(0)
 
-    issues = [
-        issue for issue in issues if issue["status"] in projects_data["column_mappings"]
-    ]
+    issues = [issue for issue in issues if issue["status"] in data["column_mappings"]]
 
-    move_issues_ret = do_copy_issues(headers, projects_data["new"]["id"], issues)
+    move_issues_ret = do_copy_issues(headers, data["new"]["id"], issues)
     print("Copied issues.")
 
     new_issues_status = []
@@ -375,7 +373,7 @@ if __name__ == "__main__":
     for issue_old, issue_new in move_issues_ret.items():
         issue_status = next(
             (
-                projects_data["column_mappings"][issue["status"]]
+                data["column_mappings"][issue["status"]]
                 for issue in issues
                 if issue["id"] == issue_old
             ),
@@ -386,8 +384,7 @@ if __name__ == "__main__":
 
     update_ret = do_update_issues(
         headers,
-        projects_data["new"]["id"],
+        data["new"]["id"],
         new_issues_status,
-        projects_data["new_project_status_field"]["id"],
+        data["new_project_status_field"]["id"],
     )
-    print("Updated issues.")
