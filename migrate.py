@@ -17,10 +17,9 @@ def run_query(query, headers):
     if request.status_code == 200:
         return request.json()
     else:
+        print(request)
         raise Exception(
-            "Query failed to run by returning code of {}. {}".format(
-                request.status_code, query
-            )
+            f"Query failed to run by returning code of {request.status_code}, with the message {request.text}. {query}"
         )
 
 
