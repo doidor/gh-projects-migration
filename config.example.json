@@ -3,5 +3,8 @@
   "user": "github user or organization",
   "repository": "github repository",
   "project_old": "old project name",
-  "project_new": "new project name"
+  "project_new": "new project name",
+  "column_mapping": {
+    "column_name_old": "column_name_new"
+  }
 }

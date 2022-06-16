@@ -24,7 +24,9 @@ def run_query(query, headers):
         )
 
 
-def get_projects_data(headers, user, repository, project_old, project_new, user_type):
+def get_projects_data(
+    headers, user, repository, project_old, project_new, user_type, column_mapping=None
+):
     """
     Fetches new and old projects data.
     """
@@ -92,22 +94,55 @@ def get_projects_data(headers, user, repository, project_old, project_new, user_
 
     column_mappings = {}
 
-    for column in project_data_old["columns"]:
-        new_column = next(
-            (
-                new_col
-                for new_col in project_data_new["columns"]
-                if new_col["name"].lower() == column["name"].lower()
-            ),
-            None,
-        )
-
-        if new_column is None:
-            raise Exception(
-                f"Column {column['name']} not found in new project. Please make sure to manually clone all the columns from the old project to the new one."
+    if column_mapping is not None:
+        for old_column_name, new_column_name in column_mapping.items():
+            old_column_id = next(
+                (
+                    column["id"]
+                    for column in project_data_old["columns"]
+                    if column["name"].lower() == old_column_name.lower()
+                ),
+                None,
             )
 
-        column_mappings[column["id"]] = new_column["id"]
+            if old_column_id is None:
+                raise Exception(
+                    f"Column {old_column_name} not found on project {project_old}"
+                )
+
+            new_column_id = next(
+                (
+                    column["id"]
+                    for column in project_data_new["columns"]
+                    if column["name"].lower() == new_column_name.lower()
+                ),
+                None,
+            )
+
+            if new_column_id is None:
+                raise Exception(
+                    f"Column {new_column_name} not found on project {project_new}"
+                )
+
+            column_mappings[old_column_id] = new_column_id
+
+    else:
+        for column in project_data_old["columns"]:
+            new_column = next(
+                (
+                    new_col
+                    for new_col in project_data_new["columns"]
+                    if new_col["name"].lower() == column["name"].lower()
+                ),
+                None,
+            )
+
+            if new_column is None:
+                raise Exception(
+                    f"Column {column['name']} not found in new project. Please make sure to manually clone all the columns from the old project to the new one."
+                )
+
+            column_mappings[column["id"]] = new_column["id"]
 
     ret = {
         "old": project_data_old,
@@ -261,6 +296,7 @@ if __name__ == "__main__":
     project_old = None
     project_new = None
     token = None
+    column_mapping = None
 
     if args.config is not None:
         try:
@@ -272,6 +308,10 @@ if __name__ == "__main__":
             project_old = config_data["project_old"]
             project_new = config_data["project_new"]
             token = config_data["token"]
+            column_mapping = None
+
+            if "column_mapping" in config_data:
+                column_mapping = config_data["column_mapping"]
 
         except Exception as e:
             print(f"Error opening config file: {e}")
@@ -307,6 +347,7 @@ if __name__ == "__main__":
             project_old,
             project_new,
             user_type,
+            column_mapping,
         )
 
         issues = get_project_issues(headers, user_type, user, repository, project_old)
@@ -322,6 +363,10 @@ if __name__ == "__main__":
         print(json.dumps(issues, indent=2))
 
         sys.exit(0)
+
+    issues = [
+        issue for issue in issues if issue["status"] in projects_data["column_mappings"]
+    ]
 
     move_issues_ret = do_copy_issues(headers, projects_data["new"]["id"], issues)
     print("Copied issues.")
