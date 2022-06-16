@@ -6,6 +6,37 @@ This tool is inspired by [this project migration tutorial](https://github.com/pl
 
 Please make sure to check out [the original repository prerequisites](https://github.com/pl-strflt/projects-migration#prerequisites) for this tool to work, especially the [GitHub token](https://github.com/pl-strflt/projects-migration#github-token) and [New Project](https://github.com/pl-strflt/projects-migration#new-project) paragraphs
 
+## Column names mapping
+
+The script supports a config file (in json format) that can parse the `column_mapping` field. This means that you can assign different names to new project columns and just map them in the config file, **case insensitive**. Something like:
+
+```json
+# config.json
+{
+  [..]
+  "column_mapping": {
+    "to do": "planned"
+  }
+}
+```
+
+If this option is specified, the script **will migrate only issues in these columns**, otherwise you will need to do exact name matching for all columns (ie the new project would have to have the same columns as the old one).
+
+You can also point multiple columns to a single one. Example:
+
+```json
+# config.json
+{
+  [..]
+  "column_mapping": {
+    "to do": "planned",
+    "later": "planned",
+    [..]
+  }
+}
+
+```
+
 ## Usage
 
 The tool usage is pretty straight forward:
