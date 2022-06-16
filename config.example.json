@@ -1,0 +1,7 @@
+{
+  "token": "github token",
+  "user": "github user or organization",
+  "repository": "github repository",
+  "project_old": "old project name",
+  "project_new": "new project name"
+}

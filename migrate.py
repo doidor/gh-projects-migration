@@ -244,45 +244,72 @@ if __name__ == "__main__":
         help="Only get data without any updates",
     )
 
-    required_named = parser.add_argument_group("required named arguments")
+    parser.add_argument("--token", default=None, help="Github user token")
 
-    required_named.add_argument(
-        "--token", default=None, help="Github user token", required=True
-    )
-    required_named.add_argument(
-        "--user", default=None, help="Github user", required=True
-    )
-    required_named.add_argument(
-        "--repository", default=None, help="Github repository", required=True
-    )
-    required_named.add_argument(
-        "--project_old", default=None, help="Old github project name", required=True
-    )
-    required_named.add_argument(
-        "--project_new", default=None, help="New github project name", required=True
-    )
+    parser.add_argument("--user", default=None, help="Github user")
+    parser.add_argument("--repository", default=None, help="Github repository")
+    parser.add_argument("--project_old", default=None, help="Old github project name")
+    parser.add_argument("--project_new", default=None, help="New github project name")
+
+    parser.add_argument("--config", default=None, help="Config file path")
 
     args = parser.parse_args()
     dry_run = args.dry_run
 
-    headers = {"Authorization": f"Bearer {args.token}"}
-    github_rest = Github(args.token)
-    is_org = github_rest.get_user(args.user).type.lower() == "organization" or False
+    user = None
+    repository = None
+    project_old = None
+    project_new = None
+    token = None
+
+    if args.config is not None:
+        try:
+            config_file = open(args.config)
+            config_data = json.load(config_file)
+
+            user = config_data["user"]
+            repository = config_data["repository"]
+            project_old = config_data["project_old"]
+            project_new = config_data["project_new"]
+            token = config_data["token"]
+
+        except Exception as e:
+            print(f"Error opening config file: {e}")
+            sys.exit(1)
+    else:
+        user = args.user
+        repository = args.repository
+        project_old = args.project_old
+        project_new = args.project_new
+        token = args.token
+
+    if (
+        token is None
+        or user is None
+        or repository is None
+        or project_old is None
+        or project_new is None
+    ):
+        raise Exception(
+            "You can either provide a config file, or a token, user, repository, project_old and project_new"
+        )
+
+    headers = {"Authorization": f"Bearer {token}"}
+    github_rest = Github(token)
+    is_org = github_rest.get_user(user).type.lower() == "organization" or False
     user_type = "organization" if is_org else "user"
 
     try:
         projects_data = get_projects_data(
             headers,
-            args.user,
-            args.repository,
-            args.project_old,
-            args.project_new,
+            user,
+            repository,
+            project_old,
+            project_new,
             user_type,
         )
 
-        issues = get_project_issues(
-            headers, user_type, args.user, args.repository, args.project_old
-        )
+        issues = get_project_issues(headers, user_type, user, repository, project_old)
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
