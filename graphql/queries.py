@@ -1,3 +1,6 @@
+"""
+Functions that fetch data from the GitHub GraphQL API.
+"""
 import json
 
 from queries import projects_data, project_issues, project_prs

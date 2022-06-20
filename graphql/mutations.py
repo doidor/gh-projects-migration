@@ -1,3 +1,6 @@
+"""
+Functions that write data to the GitHub GraphQL API.
+"""
 from queries import move_items, update_items_status
 from graphql.utils import run_query
 
