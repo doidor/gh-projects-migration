@@ -1,7 +1,7 @@
 from string import Template
 
 single_item_query_raw = """
-  $issue_move_name: addProjectNextItem(input: {projectId: "$project_id", contentId: "$issue_id"}) {
+  $item_move_name: addProjectNextItem(input: {projectId: "$project_id", contentId: "$item_id"}) {
     projectNextItem {
       id
     }
@@ -10,7 +10,7 @@ single_item_query_raw = """
 
 query_raw = """
 mutation {
-  $group_issue_move
+  $group_items_move
 }
 """
 
